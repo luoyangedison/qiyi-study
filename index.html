@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>初一全科学习闯关 - 七年级下册</title>
+<style>
+:root{--bg:#f0f4f8;--card:#fff;--primary:#5b6abf;--success:#38a169;--error:#e53e3e;--gold:#f6ad55;--text:#2d3748;--sub:#718096;--shadow:0 2px 12px rgba(0,0,0,.08)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"PingFang SC","Microsoft YaHei","Helvetica Neue",sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.container{max-width:900px;margin:0 auto;padding:20px}
+.header{text-align:center;padding:24px 0 16px}
+.header h1{font-size:28px;background:linear-gradient(135deg,#667eea,#764ba2);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px}
+.header p{color:var(--sub);font-size:14px}
+/* Subject Grid */
+.subjects{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px;margin-top:24px}
+.subj-card{background:var(--card);border-radius:16px;padding:20px 16px;text-align:center;cursor:pointer;box-shadow:var(--shadow);transition:transform .2s,box-shadow .2s;border:2px solid transparent;position:relative}
+.subj-card:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.12)}
+.subj-card.played{border-color:#e2e8f0}
+.subj-icon{font-size:42px;margin-bottom:10px;line-height:1}
+.subj-name{font-weight:700;font-size:16px;margin-bottom:6px}
+.subj-progress{height:6px;background:#e2e8f0;border-radius:3px;margin-top:8px;overflow:hidden}
+.subj-progress-bar{height:100%;background:linear-gradient(90deg,#667eea,#764ba2);border-radius:3px;transition:width .5s}
+.subj-info{font-size:12px;color:var(--sub);margin-top:4px}
+.subj-star{position:absolute;top:8px;right:10px;font-size:18px}
+/* Chapter Screen */
+.back-btn{background:none;border:none;color:var(--primary);font-size:15px;cursor:pointer;padding:8px 0;margin-bottom:12px;display:flex;align-items:center;gap:4px}
+.back-btn:hover{text-decoration:underline}
+.chapter-list{display:flex;flex-direction:column;gap:12px}
+.chapter-card{background:var(--card);border-radius:14px;padding:16px 20px;display:flex;align-items:center;gap:14px;box-shadow:var(--shadow);cursor:pointer;transition:transform .15s;position:relative}
+.chapter-card:hover:not(.locked){transform:translateX(3px)}
+.chapter-card.locked{opacity:.5;cursor:not-allowed;filter:grayscale(.3)}
+.chapter-card.done{border-left:4px solid var(--success)}
+.chapter-num{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex-shrink:0}
+.chapter-num.open{background:#ebf4ff;color:var(--primary)}
+.chapter-num.done{background:#e6fffa;color:var(--success)}
+.chapter-num.locked{background:#f7fafc;color:#cbd5e0}
+.chapter-info{flex:1}
+.chapter-info h3{font-size:15px;margin-bottom:3px}
+.chapter-info p{font-size:12px;color:var(--sub)}
+.chapter-status{font-size:13px;font-weight:600}
+.chapter-status.open{color:var(--primary)}
+.chapter-status.done{color:var(--success)}
+.lock-icon{font-size:20px;color:#cbd5e0}
+/* Quiz Screen */
+.quiz-container{max-width:700px;margin:0 auto}
+.quiz-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+.breadcrumb{font-size:13px;color:var(--sub)}
+.combo-badge{background:var(--gold);color:#fff;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:600;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}
+.progress-top{display:flex;align-items:center;gap:10px;width:100%}
+.progress-top .bar{flex:1;height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden}
+.progress-top .bar-fill{height:100%;background:linear-gradient(90deg,#667eea,#764ba2);border-radius:4px;transition:width .4s}
+.progress-top span{font-size:13px;color:var(--sub);white-space:nowrap}
+.question-card{background:var(--card);border-radius:18px;padding:28px;box-shadow:var(--shadow);margin-bottom:16px}
+.question-card h2{font-size:18px;line-height:1.6;margin-bottom:20px}
+.options{display:flex;flex-direction:column;gap:10px}
+.opt-btn{display:block;width:100%;text-align:left;padding:14px 18px;border:2px solid #e2e8f0;border-radius:12px;background:#fff;font-size:15px;cursor:pointer;transition:all .2s}
+.opt-btn:hover{border-color:var(--primary);background:#f7f8ff}
+.opt-btn.correct{border-color:var(--success);background:#f0fff4;color:var(--success);font-weight:600}
+.opt-btn.wrong{border-color:var(--error);background:#fff5f5;color:var(--error)}
+.opt-btn:disabled{pointer-events:none;opacity:.85}
+.feedback{margin-top:16px;padding:16px;border-radius:12px;display:none}
+.feedback.show{display:block}
+.feedback.success{background:#f0fff4;border:1px solid #c6f6d5}
+.feedback.error{background:#fff5f5;border:1px solid #fed7d7}
+.feedback h3{font-size:16px;margin-bottom:8px}
+.feedback p{font-size:14px;line-height:1.7;color:#4a5568}
+.retry-btn{margin-top:12px;padding:10px 24px;background:var(--primary);color:#fff;border:none;border-radius:10px;font-size:14px;cursor:pointer;transition:background .2s}
+.retry-btn:hover{background:#4c5aa8}
+/* Result Screen */
+.result-card{background:var(--card);border-radius:18px;padding:28px;box-shadow:var(--shadow);text-align:center;margin-bottom:20px}
+.result-card .big-emoji{font-size:64px;margin-bottom:12px}
+.result-card h2{font-size:24px;margin-bottom:8px}
+.result-card .stats{display:flex;gap:20px;justify-content:center;flex-wrap:wrap;margin:16px 0}
+.stat{text-align:center;min-width:80px}
+.stat .num{font-size:28px;font-weight:700;color:var(--primary)}
+.stat .label{font-size:12px;color:var(--sub);margin-top:2px}
+.next-btn,.home-btn{padding:12px 32px;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;margin:6px;transition:all .2s}
+.next-btn{background:var(--success);color:#fff;border:none}
+.next-btn:hover{background:#2f855a}
+.home-btn{background:#fff;color:var(--primary);border:2px solid var(--primary)}
+.home-btn:hover{background:var(--primary);color:#fff}
+/* Summary Screen */
+.summary-card{background:var(--card);border-radius:18px;padding:24px;box-shadow:var(--shadow)}
+.summary-card h3{font-size:18px;margin-bottom:16px}
+.summary-table{width:100%;border-collapse:collapse;font-size:14px}
+.summary-table th,.summary-table td{padding:10px 12px;text-align:center;border-bottom:1px solid #e2e8f0}
+.summary-table th{background:#f7fafc;font-weight:600;color:var(--sub)}
+.summary-table td{color:var(--text)}
+/* Animations */
+@keyframes fadeInUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeInUp .4s ease}
+@keyframes starBurst{0%{transform:scale(0);opacity:0}50%{transform:scale(1.3)}100%{transform:scale(1);opacity:1}}
+.star-anim{animation:starBurst .5s ease}
+/* Responsive */
+@media(max-width:600px){.subjects{grid-template-columns:repeat(2,1fr)}.chapter-card{padding:12px 14px}.quiz-header{flex-direction:column}}
+/* Easter Egg */
+.firework{position:fixed;pointer-events:none;z-index:999;animation:flyUp 1s ease-out forwards}
+@keyframes flyUp{0%{transform:translateY(0) scale(1);opacity:1}100%{transform:translateY(-200px) scale(0);opacity:0}}
+</style>
+</head>
+<body>
+<div class="container" id="app">
+  <div class="header"><h1>初一全科学习闯关</h1><p>七年级下册 | 语数外 + 小四门 | 洛阳市涧西区教材</p></div>
+  <div id="content"></div>
+</div>
+
+<script>
+// ====== DATA ======
+const QUIZ_DATA = {"数学": {"chapters": [{"id": "math_ch7", "title": "第7章 相交线与平行线", "questions": [{"q": "如图，两条直线相交，∠1=60°，那么∠2等于多少度？", "opts": ["30°", "60°", "120°", "90°"], "ans": 1, "explain": "就像照镜子一样，两条直线相交时，∠1和∠2是“对顶角”——它们面对面站着，大小完全一样。你站在镜子前，镜子里你的大小不会变吧？所以∠2=60°！"}, {"q": "若a⊥b，b⊥c，则a与c的位置关系是？", "opts": ["相交", "异面", "平行", "垂直"], "ans": 2, "explain": "想象一下马路上的斑马线，一条白线和另一条白线都垂直于路边。那么这两条白线之间是什么关系？它们是平行的，谁也不挨着谁！所以a∥c。"}, {"q": "平行线判定方法中，内错角相等，两直线？", "opts": ["相交", "垂直", "重合", "平行"], "ans": 3, "explain": "想象Z字形的折纸——Z形中间的两个角就是内错角。如果这两个角一模一样大，那Z的两横就是平行的，就像火车铁轨的两条钢轨！"}, {"q": "命题“对顶角相等”是？", "opts": ["假命题", "定义", "定理", "公理"], "ans": 2, "explain": "这件事需要证明才能让大家相信，所以我们叫它“定理”。就像你证明“作业写完才能玩游戏”这个规则成立一样，经过推理验证过的就是定理。"}]}, {"id": "math_ch8", "title": "第8章 实数", "questions": [{"q": "√16的算术平方根是？", "opts": ["4", "2", "8", "16"], "ans": 1, "explain": "√16=4，然后问的是“4的算术平方根”。算术平方根就是正的那个平方根。2×2=4，所以答案是2。就像一个盒子，4是盒子的面积，那么盒子的边长就是2！"}, {"q": "下列哪个数是无理数？", "opts": ["3.14", "22/7", "√2", "0.5"], "ans": 2, "explain": "无理数就是“没法写成分数”的数。√2≈1.41421356...它的小数点后面永远没有规律，不会循环。就像永远找不到规律的一串密码！22/7和3.14都能写成分数，所以是有理数。"}, {"q": "³√27的值是？", "opts": ["3", "9", "6", "27"], "ans": 0, "explain": "立方根就是找“哪个数连乘三次等于我”。3×3×3=27，就像一个正方体，每边3厘米，体积就是27立方厘米！"}]}, {"id": "math_ch9", "title": "第9章 平面直角坐标系", "questions": [{"q": "点(3,-2)在第几象限？", "opts": ["一", "二", "三", "四"], "ans": 3, "explain": "就像去看电影找座位：横坐标x=3是正数→右边；纵坐标y=-2是负数→下面。右边+下面=第四象限！记住口诀：右上开始逆时针转，4→1→2→3。"}, {"q": "点A(2,3)向右平移5个单位后的坐标是？", "opts": ["(2,8)", "(7,3)", "(-3,3)", "(2,-2)"], "ans": 1, "explain": "球场上你往右走了5步，原来的位置是(2,3)。横坐标加5：2+5=7，纵坐标没动还是3。所以到了(7,3)。就像在操场上向右横着走，前后位置不变！"}]}, {"id": "math_ch10", "title": "第10章 二元一次方程组", "questions": [{"q": "方程组 x+y=5, x-y=1 的解是？", "opts": ["x=3,y=2", "x=2,y=3", "x=4,y=1", "x=1,y=4"], "ans": 0, "explain": "想象你有5颗糖，你和弟弟分。你知道你比弟弟多1颗。那姐姐拿几颗弟弟拿几颗？加起来=5，相减=1，所以你有3颗(x=3)，弟弟有2颗(y=2)！"}, {"q": "解方程组用代入消元法，第一步应该？", "opts": ["两个方程直接相加", "把未知数消去", "用一个未知数表示另一个", "换元"], "ans": 2, "explain": "代入消元就像“偷梁换柱”——先从一个方程里把x写成y的表达式（比如x=5-y），再把这个x塞进另一个方程里替换掉原来的x，这样方程就只剩一个未知数了！"}]}, {"id": "math_ch11", "title": "第11章 不等式与不等式组", "questions": [{"q": "不等式-2x>6的解集是？", "opts": ["x>3", "x<-3", "x<3", "x>-3"], "ans": 1, "explain": "不等式的性质3：两边同时除以负数，不等号要掉头！-2x>6，两边除以-2，x<-3。就像跷跷板——你在左边往下压，翻过来就变成右边高了！"}, {"q": "不等式组 x>2, x≤5 的整数解有几个？", "opts": ["2个", "3个", "4个", "5个"], "ans": 1, "explain": "x要比2大，又不能超过5。整数有：3,4,5。一共3个。就像排队买饭，排在第3、4、5名的人能买到，第2名之前的和5名之后的都买不到！"}]}, {"id": "math_ch12", "title": "第12章 数据的收集整理与描述", "questions": [{"q": "全班50人，用哪种方式统计最准确？", "opts": ["抽样调查", "全面调查", "随机调查", "估计"], "ans": 1, "explain": "全班就50个人，一个个问过来也不费事，这就是“全面调查”（也叫普查）。抽样调查是只问一部分人。你数自己口袋里的钱，当然是一张一张数最准啦！"}, {"q": "扇形图主要用来表示？", "opts": ["变化趋势", "数量多少", "各部分占比", "频率分布"], "ans": 2, "explain": "扇形图就像切披萨——每一块代表不同的部分，你能一眼看出哪块最大、占总体的比例是多少。如果想看趋势变化（像温度先升后降），要用折线图。"}]}]}, "语文": {"chapters": [{"id": "chn_ch1", "title": "第一单元 群星闪耀", "questions": [{"q": "《孙权劝学》中孙权劝吕蒙学习，吕蒙后来怎么样？", "opts": ["弃武从文", "辞官归隐", "学有所成", "没有进步"], "ans": 2, "explain": "吕蒙一开始说“军中事务太多，没空读书”。孙权说“我又不是让你当博士！只是让你粗略读读，了解历史罢了。”吕蒙听了，努力学习，后来连鲁肃都夸“卿今者才略，非复吴下阿蒙！”——你再也不是以前那个不读书的吕蒙啦！"}, {"q": "杨振宁笔下的邓稼先具有什么品质？", "opts": ["骄傲自大", "纯朴无私", "胆小怕事", "墨守成规"], "ans": 1, "explain": "杨振宁说邓稼先是中国几千年传统文化孕育出来的有最高奉献精神的儿子。他为了国家的核事业，隐姓埋名几十年，不求名不求利。就像蜡烛——燃烧自己，照亮别人。"}, {"q": "《孙权劝学》中“卿今当涂掌事”的“当涂”意思是？", "opts": ["应当糊涂", "掌握权力", "管理道路", "涂抹颜料"], "ans": 1, "explain": "“当涂”的“涂”通“途”，指仕途、做官的路。“当涂掌事”意思是正在当权管事。就像你现在是班长，手里有管理班级的权力，所以要好好学习才行！"}]}, {"id": "chn_ch2", "title": "第二单元 家国情怀", "questions": [{"q": "《木兰诗》中“朔气传金柝，寒光照铁衣”描写的是？", "opts": ["木兰织布", "木兰征战", "木兰归家", "木兰化妆"], "ans": 1, "explain": "这两句写的是木兰在北方边境打仗的场景。“朔气”是北方的寒气，“金柝”是打更用的铜器，“铁衣”就是盔甲。寒冷的夜里传来打更声，月光照在冰凉的盔甲上——超级辛苦！"}, {"q": "《黄河颂》的作者是？", "opts": ["光未然", "郭沫若", "艾青", "老舍"], "ans": 0, "explain": "《黄河颂》选自组诗《黄河大合唱》，光未然作词，冼星海谱曲。这首歌是在抗日战争时期写的，用黄河象征中华民族不屈不挠的精神。就像你在比赛中遇到强敌，喊一句“我可以的！”给自己打气一样！"}]}, {"id": "chn_ch3", "title": "第三单元 平凡人物", "questions": [{"q": "《卖油翁》中卖油翁展示技艺说明什么道理？", "opts": ["运气很重要", "熟能生巧", "速度决定一切", "天赋最重要"], "ans": 1, "explain": "卖油翁把油从小铜钱孔里倒进去，钱上不沾一滴油。他说“无他，唯手熟尔”——没什么特别的，就是练得多！就像你打游戏：刚开始被虐，打了一百局后你就是大神了。这就是熟能生巧！"}, {"q": "《阿长与〈山海经〉》中，长妈妈为鲁迅做了什么让他感动？", "opts": ["做了一顿饭", "买了《山海经》", "打扫房间", "借了笔"], "ans": 1, "explain": "长妈妈是个不识字的老保姆，可她记住了小鲁迅心心念念的《山海经》，跑了好几家店给他买回来了。就像你随口说想要某个玩具，奶奶虽然不懂但跑遍全城给你买到了——这份心意比礼物本身更珍贵！"}]}, {"id": "chn_ch4", "title": "第四单元 中华美德", "questions": [{"q": "“苔痕上阶绿，草色入帘青”出自哪篇课文？", "opts": ["《爱莲说》", "《陋室铭》", "《老山界》", "《木兰诗》"], "ans": 1, "explain": "这是刘禹锡的《陋室铭》。他说虽然我的房子很破，但青苔长在台阶上，绿草映在窗帘上——多自然多美啊！就像你的旧书桌虽然掉漆了，但上面有你和好朋友刻的字，你也不舍得换。"}, {"q": "《爱莲说》中作者最喜爱莲花的原因是什么？", "opts": ["莲花很漂亮", "莲花很香", "莲花出淤泥而不染", "莲花容易种植"], "ans": 2, "explain": "周敦颐爱莲，因为莲从污泥里长出来却不沾脏东西——“出淤泥而不染，濯清涟而不妖”。就像你班上总有人抄作业、说脏话，但你不跟风，保持自己的好习惯，你就是“莲花”！"}]}, {"id": "chn_ch5", "title": "第五单元 观照自然", "questions": [{"q": "《紫藤萝瀑布》中作者通过紫藤萝表达了什么？", "opts": ["对美食的喜爱", "对生命的感悟", "对旅行的向往", "对历史的思考"], "ans": 1, "explain": "宗璞看到紫藤萝花开得铺天盖地、从没停过——去年被砍掉了，今年又长得更旺盛。她感悟到：花和人都会遇到不幸，但生命的长河是无止境的。就像你考试考砸了，只要不放弃，下次一定会反弹！"}, {"q": "《望岳》中“会当凌绝顶，一览众山小”表达了什么？", "opts": ["登山很累", "山顶很冷", "俯瞰美景", "志在高远"], "ans": 3, "explain": "杜甫说：我一定要登上泰山的最高处，到时候往下看，周围的山都矮得像小土堆！这不是说山真的小，而是表达他立志要出人头地的宏伟志向。就像你说“我要考全班第一”——不是看不起同学，是表达上进心！"}]}, {"id": "chn_ch6", "title": "第六单元 科学探索", "questions": [{"q": "《太空一日》的作者是谁？", "opts": ["聂海胜", "杨利伟", "刘洋", "翟志刚"], "ans": 1, "explain": "杨利伟是中国第一位进入太空的航天员，2003年乘坐神舟五号飞船。他在《太空一日》里写了自己在太空中的真实感受——包括起飞时的剧烈震动和返回时的惊险经历。"}, {"q": "《活板》中，活字印刷术的发明者是？", "opts": ["蔡伦", "毕昇", "张衡", "沈括"], "ans": 1, "explain": "北宋的毕昇发明了活字印刷术——用胶泥做成一个个小方块字，排版时可以灵活移动组合，用完还能拆下来下次再用。就像乐高积木，用完拆掉下次还能拼别的！沈括在《梦溪笔谈》里记载了这个发明。"}]}]}, "英语": {"chapters": [{"id": "eng_ch1", "title": "Unit 1 Animal Friends", "questions": [{"q": "Which word means “企鹅”?", "opts": ["Penguin", "Eagle", "Dolphin", "Giraffe"], "ans": 0, "explain": "Penguin=企鹅，一种不会飞但游泳超厉害的鸟。想象南极的企鹅穿着“燕尾服”摇摇摆摆走路的样子，是不是很可爱？"}, {"q": "What special question word do we use to ask about reasons?", "opts": ["What", "Where", "Why", "When"], "ans": 2, "explain": "Why=为什么，问原因。比如“Why do you like pandas?”（你为什么喜欢熊猫？）记住：Y开头的单词，它的发音和“歪”很像——你歪着头问别人“为什么”的样子！"}]}, {"id": "eng_ch2", "title": "Unit 2 No Rules, No Order", "questions": [{"q": "Which sentence is a correct imperative (祈使句)?", "opts": ["You go to school.", "Don't run in the hallway!", "He is eating lunch.", "Can I go now?"], "ans": 1, "explain": "祈使句就是命令句/请求句，动词开头，没有主语。Don't run in the hallway! = 别在走廊跑！就像体育老师喊“立正！”——没有“你”字，但就是在命令你。祈使句的否定用Don't开头。"}, {"q": "In “We must wear uniforms”, what does “must” express?", "opts": ["Ability", "Permission", "Obligation", "Prediction"], "ans": 2, "explain": "Must表示“必须”，是一种强烈的义务/责任。就像上学必须穿校服，你没得选。相比之下can是“可以/能”，have to也是“不得不”但是比must语气稍弱。"}]}, {"id": "eng_ch3", "title": "Unit 3 Keep Fit", "questions": [{"q": "How often do you exercise? —— ____ a week.", "opts": ["One", "Once", "First", "Every"], "ans": 1, "explain": "问频率“多久一次”用How often。once a week = 一周一次；twice a day = 一天两次。once不只是“曾经”的意思，还可以表示“一次”！就像你吃零食——妈妈问多频繁，你说“一周一次”：Once a week！"}]}, {"id": "eng_ch4", "title": "Unit 4 Eat Well", "questions": [{"q": "Which is an uncountable noun (不可数名词)?", "opts": ["Apple", "Egg", "Rice", "Banana"], "ans": 2, "explain": "米饭(rice)是不可数名词——你没法说“一粒米、两粒米”（英语里不说one rice, two rices）。但苹果(apple)你可以说one apple, two apples。不可数名词就像水，你不能说“一个水、两个水”吧？"}]}, {"id": "eng_ch5", "title": "Unit 5 Here and Now", "questions": [{"q": "What ____ you ____ now?", "opts": ["do, do", "are, doing", "did, do", "will, do"], "ans": 1, "explain": "表示现在正在做的事情用现在进行时：am/is/are + 动词ing。就像你现在正在做题——You are answering questions now! 关键词是now=现在。"}]}, {"id": "eng_ch6", "title": "Unit 6 Rain or Shine", "questions": [{"q": "It's raining outside. The boy ____ an umbrella.", "opts": ["carries", "is carrying", "carried", "carry"], "ans": 1, "explain": "描述此刻正在发生的动作，用现在进行时：is carrying。一个小技巧：看到“现在、此刻、Look! Listen!”往往就是用进行时的信号！"}, {"q": "Which word means “晴朗的”?", "opts": ["Rainy", "Cloudy", "Sunny", "Windy"], "ans": 2, "explain": "Sunny = 晴朗的（来自sun太阳+ny）。Rainy=下雨的，Cloudy=多云的，Windy=刮风的。记住：sunny就是太阳公公笑的样子！"}]}, {"id": "eng_ch7", "title": "Unit 7 A Day to Remember", "questions": [{"q": "I ____ to the zoo last Sunday.", "opts": ["go", "goes", "went", "going"], "ans": 2, "explain": "last Sunday=上周日，是过去的时间，要用一般过去时。go的过去式是went（不规则变化）。就像你昨天做了什么——发生在过去的都用过去式。注意：不是go变成goed，是went！"}]}, {"id": "eng_ch8", "title": "Unit 8 Once upon a Time", "questions": [{"q": "Once upon a time, there ____ a beautiful princess.", "opts": ["is", "was", "were", "are"], "ans": 1, "explain": "Once upon a time=很久很久以前，是过去的事。there was/were是there be的过去式。a princess是单数所以用was。就像童话故事开头“从前有座山”——山的英语是单数所以用was！"}]}]}, "道德与法治": {"chapters": [{"id": "dd_ch1", "title": "第1课 青春正当时", "questions": [{"q": "进入青春期后，我们身体会发生什么变化？", "opts": ["没有任何变化", "身体快速发育", "智力下降", "停止生长"], "ans": 1, "explain": "青春期就像春天的小树苗——蹭蹭蹭地往上长！身高、体重快速增长，声音变化，这些都是正常的生理现象。就像蝴蝶从毛毛虫变成蝴蝶，要经历蜕皮、结茧的过程一样！"}, {"q": "与异性同学交往应该注意什么？", "opts": ["完全不说话", "互相尊重、自然大方", "只能谈恋爱", "偷偷摸摸"], "ans": 1, "explain": "男生女生就像筷子的两根——不是一模一样的，但配合起来才夹得住菜。正常交往不用尴尬，大方说话、互相帮助就好。注意保持适当距离，就像好朋友之间也要有个人空间。"}]}, {"id": "dd_ch2", "title": "第2课 做情绪情感的主人", "questions": [{"q": "当你考试没考好很沮丧，以下哪种做法更好？", "opts": ["大哭三天", "和同学打架", "分析原因，制定计划继续努力", "从此不学习"], "ans": 2, "explain": "情绪就像天气——有晴天也有雨天，很正常！但你不能因为下雨就永远不出门了吧？分析为什么考不好（是不是复习不够？粗心了？），然后制定计划，下次一定能考好。就像游戏里死了，不总结怎么过关，下次还会死！"}]}, {"id": "dd_ch3", "title": "第3课 人贵自尊", "questions": [{"q": "什么是自尊的正确理解？", "opts": ["看不起别人", "尊重自己的人格和价值", "觉得自己最厉害", "不接受批评"], "ans": 1, "explain": "自尊不是自大！自尊是珍惜自己的名誉、尊重自己的人格。就像一个干净的杯子——别人往里面倒脏东西，你会保护它不被打翻。自尊的人也不会为了讨好人而做违背良心的事。"}]}, {"id": "dd_ch4", "title": "第4课 自信给人力量", "questions": [{"q": "自信的人通常有什么特点？", "opts": ["目中无人", "相信自己的能力，敢于尝试", "从不失败", "不需要努力"], "ans": 1, "explain": "自信不是“我什么都行”，而是“我虽然可能失败，但我愿意试试”。就像第一次骑自行车——你相信自己能学会，摔倒了爬起来再试。自信的人敢于面对挑战，这叫“相信自己能行”！"}]}, {"id": "dd_ch5", "title": "第5课 人生当自强", "questions": [{"q": "什么是自强不息？", "opts": ["依靠别人", "不断努力、永不放弃", "躺平什么都不做", "等别人来帮"], "ans": 1, "explain": "自强不息就是靠自己不断努力、永远不放弃。天行健，君子以自强不息！就像愚公移山——山虽然很大，但他每天挖一点，最终感动了天帝。没有谁能替你努力，你得自己站起来！"}]}, {"id": "dd_ch6", "title": "第6课 传承核心思想理念", "questions": [{"q": "中华传统文化的核心思想理念不包括？", "opts": ["仁爱", "民本", "个人主义", "诚信"], "ans": 2, "explain": "中华传统文化的核心强调集体、和谐。仁爱（关爱别人）、民本（以人民为本）、诚信（说到做到）都是核心。个人主义（只考虑自己）是西方文化的特点。中国人讲究“大家好才是真的好”！"}]}, {"id": "dd_ch7", "title": "第7课 弘扬中华人文精神", "questions": [{"q": "以下哪种体现了中华人文精神？", "opts": ["唯利是图", "舍生取义", "损人利己", "自私自利"], "ans": 1, "explain": "孟子说“舍生取义”——为了正义哪怕放弃生命也在所不惜。这不是让你真的去牺牲，而是在面对选择时，把道义放在利益前面。就像考试时发现同桌抄你答案，你要不要举报？选择正义就是中华人文精神！"}]}, {"id": "dd_ch8", "title": "第8课 践行中华传统美德", "questions": [{"q": "“孝亲敬老”是中华传统美德，以下做法正确的是？", "opts": ["嫌弃父母唠叨", "关心父母，帮做家务", "只顾自己玩手机", "对长辈发脾气"], "ans": 1, "explain": "孝亲敬老不是等你有钱了才去做的事。帮爸妈洗个碗、陪爷爷奶奶聊聊天，这些都是孝顺。就像小鸟长大了反哺老鸟——父母养你小，你陪父母老！"}]}, {"id": "dd_ch9", "title": "第9课 法律为我们护航", "questions": [{"q": "我国保护未成年人的专门法律有？", "opts": ["《民法典》", "《未成年人保护法》", "《公司法》", "《婚姻法》"], "ans": 1, "explain": "《未成年人保护法》和《预防未成年人犯罪法》是专门保护你们这些未满18岁“花朵”的法律。就像一个超级保护罩，从家庭、学校、社会、网络、政府、司法六个方面护着你！"}]}, {"id": "dd_ch10", "title": "第10课 走近民法典", "questions": [{"q": "《民法典》中规定的民事权利不包括？", "opts": ["人身权", "财产权", "婚姻家庭权", "刑罚权"], "ans": 3, "explain": "刑罚权是刑法的事，不是民法典管的。民法典管的是老百姓之间的“私事”——你的人格尊严（人身权）、你的东西（财产权）、你的家庭关系等等。就像一个社区的“居民守则”，管的是邻居之间的矛盾。"}]}, {"id": "dd_ch11", "title": "第11课 远离违法犯罪", "questions": [{"q": "以下哪种行为属于犯罪？", "opts": ["上课说话", "不写作业", "抢劫", "乱扔垃圾"], "ans": 2, "explain": "犯罪是危害社会、触犯刑法的严重行为，比如抢劫、故意伤害等。上课说话是不良行为，不写作业是违纪，乱扔垃圾是不文明行为。小错误不改可能变成大错误——就像小洞不补，大洞吃苦！"}]}]}, "历史": {"chapters": [{"id": "his_ch1", "title": "第1课 隋朝统一与灭亡", "questions": [{"q": "隋朝统一全国是在哪一年？", "opts": ["581年", "589年", "618年", "626年"], "ans": 1, "explain": "581年杨坚建立隋朝（就像挂上了公司招牌），589年灭掉南方的陈朝统一全国（真正把业务扩展到全国）。记住：589就像“我把酒”——隋朝把酒庆祝统一天下！"}, {"q": "隋朝开创的选官制度是？", "opts": ["世袭制", "科举制", "九品中正制", "禅让制"], "ans": 1, "explain": "科举制就是用考试选拔官员——不管你家多穷，只要你读书好、考得好，就能当官。就像现在的升学考试，靠实力而不是靠拼爹。这在当时是超级革命性的制度！"}]}, {"id": "his_ch2", "title": "第2课 唐朝建立与贞观之治", "questions": [{"q": "“贞观之治”是哪个皇帝的年号？", "opts": ["李渊", "李世民", "武则天", "唐玄宗"], "ans": 1, "explain": "唐太宗李世民的年号叫“贞观”。他把国家治理得非常好——任用贤臣（魏征）、减轻赋税、完善法律。就像足球教练带出了冠军队伍。魏征就像一个严格的助教，天天给他挑毛病，李世民还很高兴！"}]}, {"id": "his_ch3", "title": "第3课 开元盛世", "questions": [{"q": "“开元盛世”发生在哪位皇帝时期？", "opts": ["唐高祖", "唐太宗", "唐玄宗", "唐高宗"], "ans": 2, "explain": "唐玄宗李隆基前期的年号是“开元”。那时候唐朝富得流油、强大无比，是唐朝最辉煌的时期。不过要注意——唐玄宗后期“安史之乱”后唐朝就由盛转衰了。就像你打游戏前期发育超好，后期浪了一波就输了！"}]}, {"id": "his_ch4", "title": "第4课 安史之乱与唐朝衰亡", "questions": [{"q": "“安史之乱”的发动者是？", "opts": ["安禄山和杨国忠", "安禄山和史思明", "安禄山和杨贵妃", "史思明和李林甫"], "ans": 1, "explain": "安禄山和史思明是两个节度使（地方军阀），他们联合发动叛乱。“安”和“史”各取一字叫“安史之乱”。这场战争打了八年，唐朝从此一蹶不振。就像一棵大树被雷劈了主干，虽然没死但也元气大伤！"}]}, {"id": "his_ch5", "title": "第5课 隋唐民族交往与交融", "questions": [{"q": "唐朝与吐蕃和亲，嫁过去的公主是？", "opts": ["王昭君", "文成公主", "太平公主", "西施"], "ans": 1, "explain": "文成公主嫁给吐蕃赞普松赞干布，带去了中原的农业技术和文化，促进了汉藏两族友好。就像两家联姻，从此亲戚走动频繁。王昭君是汉朝嫁给匈奴的，别搞混了！"}]}, {"id": "his_ch6", "title": "第6课 隋唐中外文化交流", "questions": [{"q": "唐朝时来中国学习的外国留学生以哪国人最多？", "opts": ["日本", "印度", "波斯", "罗马"], "ans": 0, "explain": "唐朝时日本派了很多“遣唐使”来中国学习。他们学中国的制度、文字、建筑，回去照搬。就像你买了iPhone回去拆开研究，然后做出自己的手机——日本的奈良城就是仿照长安建的！"}]}, {"id": "his_ch7", "title": "第7课 隋唐科技与文化", "questions": [{"q": "被称为“诗仙”的唐代诗人是？", "opts": ["杜甫", "白居易", "李白", "王维"], "ans": 2, "explain": "李白=诗仙（潇洒飘逸像神仙），杜甫=诗圣（忧国忧民像圣人）。李白写“飞流直下三千尺”，想象力天马行空。就像流行乐坛的周杰伦，风格独树一帜！白居易=诗魔/诗王，也很厉害但别搞混了。"}]}, {"id": "his_ch8", "title": "第8课 北宋的政治", "questions": [{"q": "北宋建立者赵匡胤通过什么事件夺取政权？", "opts": ["黄巢起义", "陈桥兵变", "安史之乱", "玄武门之变"], "ans": 1, "explain": "赵匡胤在陈桥驿发动兵变，“黄袍加身”当上了皇帝——他假装被部下强行披上了黄袍，其实很可能是他策划的。就好像你说“哎呀同学们非要选我当班长，我也没办法”——其实你心里乐开了花！"}]}, {"id": "his_ch9", "title": "第9课 辽西夏与北宋并立", "questions": [{"q": "与北宋签订“澶渊之盟”的政权是？", "opts": ["西夏", "辽", "金", "元"], "ans": 1, "explain": "北宋和辽在澶州大战，最后签了和平协议——北宋每年给辽一些“岁币”（保护费），辽不再南下攻打。虽然有点丢面子，但换来了百年和平，老百姓不用打仗了。"}]}, {"id": "his_ch10", "title": "第10课 金与南宋对峙", "questions": [{"q": "南宋抗金名将，被以“莫须有”罪名杀害的是？", "opts": ["文天祥", "岳飞", "陆游", "辛弃疾"], "ans": 1, "explain": "岳飞带领“岳家军”抗击金兵，打得金兵闻风丧胆。但秦桧用“莫须有”（也许有吧——连证据都没有）的罪名害死了他。就像你帮班级赢得了比赛，结果有人嫉妒你，诬陷你作弊！"}]}, {"id": "his_ch11", "title": "第11课 元朝的统一", "questions": [{"q": "元朝的建立者是？", "opts": ["成吉思汗", "忽必烈", "窝阔台", "蒙哥"], "ans": 1, "explain": "成吉思汗（铁木真）统一蒙古各部建立蒙古帝国，但他的孙子忽必烈才正式建立元朝、定都大都（北京）。就像爷爷开了公司，孙子把公司上市了——功劳要分清楚！"}]}, {"id": "his_ch12", "title": "第12课 宋元经济繁荣", "questions": [{"q": "宋朝时经济重心从北方转移到了？", "opts": ["西方", "东方", "南方", "东北"], "ans": 2, "explain": "唐朝以前北方是经济中心（长安、洛阳），但宋朝以后南方成了经济中心。“苏湖熟，天下足”——苏州和湖州的粮食熟了，全国都吃饱了！就像现在的珠三角和长三角是经济最发达的地区。"}]}, {"id": "his_ch13", "title": "第13课 宋元对外交流", "questions": [{"q": "元朝时来中国并在朝廷任职的外国人是？", "opts": ["哥伦布", "马可·波罗", "达尔文", "拿破仑"], "ans": 1, "explain": "意大利人马可·波罗在元朝时来到中国，还在忽必烈手下当了官。回去后写了一本《马可·波罗游记》，把中国描绘得像天堂一样，让欧洲人羡慕得不得了！就像网红发了中国旅游vlog，全世界都想来！"}]}, {"id": "his_ch14", "title": "第14课 辽宋夏金元科技与文化", "questions": [{"q": "元朝著名戏剧家关汉卿的代表作是？", "opts": ["《窦娥冤》", "《西厢记》", "《牡丹亭》", "《长生殿》"], "ans": 0, "explain": "《窦娥冤》是关汉卿的代表作，讲的是善良的窦娥被冤枉处死的故事，是中国古代最著名的悲剧之一。《西厢记》是王实甫的，《牡丹亭》是明代汤显祖的。元代戏剧（元曲）非常繁荣！"}]}, {"id": "his_ch15", "title": "第15课 明朝的统治", "questions": [{"q": "明朝的开国皇帝是谁？", "opts": ["李世民", "朱元璋", "赵匡胤", "忽必烈"], "ans": 1, "explain": "朱元璋=明太祖。他出身贫苦，当过和尚、要过饭，最后却当了皇帝——屌丝逆袭的典范！他废除了丞相制度，把权力都集中到自己手里。就像一个穷孩子白手起家开了大公司，谁都不信任，什么事都自己管！"}]}, {"id": "his_ch16", "title": "第16课 明朝的对外关系", "questions": [{"q": "明朝时率领船队七下西洋的是？", "opts": ["张骞", "郑和", "班超", "玄奘"], "ans": 1, "explain": "郑和（原名马三保）是明朝的太监，他率领当时世界上最庞大的船队七次下西洋（印度洋），最远到了非洲东海岸。比哥伦布发现新大陆早将近100年！就像中国派出的“和平外交舰队”。"}]}, {"id": "his_ch17", "title": "第17课 明朝灭亡和清朝建立", "questions": [{"q": "推翻明朝统治的农民起义领袖是？", "opts": ["张献忠", "李自成", "洪秀全", "吴三桂"], "ans": 1, "explain": "李自成率领农民起义军攻入北京，崇祯皇帝自杀，明朝灭亡。“闯王来了不纳粮”——李自成的口号让无数吃不饱的农民跟他一起造反。就像全班同学被考试压得喘不过气，有人喊“跟我走，不用考试了”，大家就跟着造反了！"}]}, {"id": "his_ch18", "title": "第18课 统一多民族国家的巩固", "questions": [{"q": "清朝前期，哪位皇帝平定准噶尔叛乱、统一了新疆？", "opts": ["顺治", "康熙", "乾隆", "雍正"], "ans": 2, "explain": "乾隆皇帝平定准噶尔叛乱，把新疆正式纳入中国版图。他还平定大小和卓叛乱。康熙收台湾、打沙俄；乾隆把新疆和西藏都稳定下来。祖孙三人接力赛，把中国版图扩大到历史最大！"}]}, {"id": "his_ch19", "title": "第19课 清朝君主专制强化", "questions": [{"q": "清朝雍正时期设立的、强化君主专制的机构是？", "opts": ["内阁", "军机处", "锦衣卫", "东厂"], "ans": 1, "explain": "军机处是雍正设立的——大臣们跪着听皇帝指示、然后立刻执行，效率超高但完全听命于皇帝。就像你爸说“你只管按我吩咐做，不用思考”——权力全集中在皇帝一个人手里！"}]}, {"id": "his_ch20", "title": "第20课 明清社会经济", "questions": [{"q": "清朝前期实行什么对外政策？", "opts": ["对外开放", "闭关锁国", "自由贸易", "海上扩张"], "ans": 1, "explain": "清朝实行“闭关锁国”政策——只留广州一个口岸对外通商。就像把自己锁在房间里，只留一个猫眼往外看。虽然短期内减少了麻烦，但长期下来错过了世界工业革命的大潮，落后就要挨打！"}]}, {"id": "his_ch21", "title": "第21课 明清科技与文化", "questions": [{"q": "明代李时珍编写的药物学著作是？", "opts": ["《伤寒杂病论》", "《千金方》", "《本草纲目》", "《黄帝内经》"], "ans": 2, "explain": "李时珍花了27年编写《本草纲目》，收录了1800多种药物，是世界闻名的药物学巨著。就像把所有药品的使用说明书编成一本书，还亲自试药验证效果！《伤寒杂病论》是东汉张仲景的。"}]}]}, "地理": {"chapters": [{"id": "geo_ch7", "title": "第7章 亚洲", "questions": [{"q": "亚洲地形的显著特点是？", "opts": ["以平原为主", "以高原山地为主", "以丘陵为主", "以盆地为主"], "ans": 1, "explain": "亚洲地形“中间高、四周低”——中间是青藏高原、帕米尔高原，像一个大蛋糕中间鼓起来；四周是平原，河流从中间向四周流。亚洲的最高峰珠穆朗玛峰就在青藏高原上！"}, {"q": "亚洲气候的特征不包括？", "opts": ["气候类型多样", "季风气候显著", "温带海洋性气候广", "大陆性气候强"], "ans": 2, "explain": "亚洲有热带、温带、寒带各种气候，但就是没有温带海洋性气候——因为亚洲太大、内陆太深，海洋湿润空气吹不到内部。温带海洋性气候主要在欧洲西部（像英国那种阴雨绵绵的天气）。"}]}, {"id": "geo_ch8", "title": "第8章 邻近地区和国家", "questions": [{"q": "日本位于哪两个板块交界处，所以多火山地震？", "opts": ["印度洋板块和非洲板块", "太平洋板块和亚欧板块", "亚欧板块和印度洋板块", "南极洲板块和太平洋板块"], "ans": 1, "explain": "日本正好在太平洋板块和亚欧板块交界处，两个板块互相挤压，就像两块积木用力撞在一起——能量攒够了就地震。所以日本有“火山地震国”的称号。"}, {"q": "东南亚成为世界重要热带经济作物产地的原因是？", "opts": ["地形平坦", "全年高温多雨", "人口众多", "距离中国近"], "ans": 1, "explain": "东南亚是热带雨林和热带季风气候——全年高温多雨，就像一个大温室。种什么都疯长！天然橡胶、棕榈油、椰子、蕉麻这些热带作物在这里就像到了天堂。"}]}, {"id": "geo_ch9", "title": "第9章 东半球其他地区", "questions": [{"q": "西亚最丰富的资源是？", "opts": ["淡水资源", "石油", "森林", "煤炭"], "ans": 1, "explain": "西亚=中东地区，石油储量世界第一！波斯湾沿岸国家富得流油（字面意思）。但淡水资源极度缺乏——水比油贵不是夸张！就像你家里堆满了金子，但没水喝，金子也不能解渴。"}, {"q": "澳大利亚特有的动物不包括？", "opts": ["袋鼠", "考拉", "鸭嘴兽", "北极熊"], "ans": 3, "explain": "澳大利亚由于长期孤立于其他大陆，进化出了很多“独此一家”的动物——袋鼠（跳跳）、考拉（睡睡）、鸭嘴兽（哺乳动物却下蛋）。北极熊只生活在北极地区！"}]}, {"id": "geo_ch10", "title": "第10章 西半球的国家", "questions": [{"q": "美国农业的特点是？", "opts": ["精耕细作", "机械化程度高、专业化", "全靠进口", "以畜牧业为主"], "ans": 1, "explain": "美国农业是“大农场模式”——几千亩地就用几台大机器搞定，而且分区专业化：牛奶带、玉米带、小麦带，各有各的专长。就像工厂流水线：你做玉米他做牛奶，大家分工明确。"}]}, {"id": "geo_ch11", "title": "第11章 极地地区", "questions": [{"q": "到南极地区科学考察的最佳时间是？", "opts": ["3-5月", "6-8月", "11月-次年3月", "9-10月"], "ans": 2, "explain": "南北半球季节相反！11月到次年3月是南半球的夏季——南极出现极昼（太阳不落山），气温稍高，适合科考。我国的“雪龙”号就是这个时候去南极。就像你去东北玩，肯定选夏天去，冬天零下50度谁扛得住啊！"}]}]}, "生物": {"chapters": [{"id": "bio_ch7", "title": "第7章 生态系统", "questions": [{"q": "生态系统中的生产者是？", "opts": ["动物", "细菌", "绿色植物", "真菌"], "ans": 2, "explain": "绿色植物是“生产者”——它们通过光合作用自己制造食物（葡萄糖），是生态系统里的“厨房”。动物是“消费者”——直接或间接吃植物。所以植物是地球上所有生命的基础！"}, {"q": "食物链通常从什么开始？", "opts": ["动物", "人类", "绿色植物", "微生物"], "ans": 2, "explain": "每顿大餐都要有个“厨师”先下厨！在自然界，绿色植物就是厨师——通过光合作用把太阳光变成食物。所以食物链总是从植物开始：草→兔子→狐狸→老虎。没有植物，后面的所有动物都得饿死！"}]}, {"id": "bio_ch8", "title": "第8章 生态系统的自我调节", "questions": [{"q": "生态系统自我调节能力的特点是？", "opts": ["无限的", "有一定限度的", "不会调节", "只增不减"], "ans": 1, "explain": "生态系统就像一个弹簧——你压一压它能弹回来，但压得太厉害就弹不回来了。少量砍树，森林能恢复；全部砍光，就变成沙漠了。所以保护环境就是不要超过生态系统的“弹性极限”！"}]}, {"id": "bio_ch9", "title": "第9章 绿色开花植物的生命周期", "questions": [{"q": "种子萌发需要的外界条件不包括？", "opts": ["适宜的温度", "一定的水分", "充足的空气", "肥沃的土壤"], "ans": 3, "explain": "种子萌发最初靠的是自身的营养物质（子叶或胚乳），不需要额外肥料。它只需要三个条件：水（让种子膨胀）、空气（呼吸）、温度（适宜）。就像你出生时自带奶粉，不需要外面的大餐！"}, {"q": "植物的繁殖方式中，利用种子繁殖属于？", "opts": ["无性生殖", "有性生殖", "分裂生殖", "出芽生殖"], "ans": 1, "explain": "种子是由雌雄配子（花粉和胚珠）结合形成的，所以是有性生殖。就像小孩是爸爸妈妈基因的结合——有你爸的眼睛、有你妈的鼻子。而无性生殖（如扦插）就像用打印机复印——后代和父母一模一样！"}]}, {"id": "bio_ch10", "title": "第10章 植物的营养与物质运输", "questions": [{"q": "植物通过什么结构从土壤中吸收水分和无机盐？", "opts": ["叶片", "茎", "根", "花"], "ans": 2, "explain": "根是植物的“嘴巴”和“吸管”——根尖上有无数根毛，像无数根小吸管插在土里，吸收水分和溶解在水里的无机盐。你浇水不能浇在叶子上（除非是养兰花的），得浇在根部！"}]}, {"id": "bio_ch11", "title": "第11章 光合作用和呼吸作用", "questions": [{"q": "光合作用的原料是？", "opts": ["氧气和水", "二氧化碳和水", "有机物和氧气", "葡萄糖和水"], "ans": 1, "explain": "光合作用的公式：CO₂ + H₂O →（阳光/叶绿体）→ 葡萄糖 + O₂。原料是二氧化碳和水，就像厨师用面粉和水做面包。产生的氧气是“废弃物”（对植物来说是废物，对我们来说是生命之源）。"}, {"q": "植物呼吸作用释放的能量来自？", "opts": ["光合作用", "分解有机物", "吸收太阳光", "吸水"], "ans": 1, "explain": "呼吸作用是分解有机物（主要是葡萄糖）释放能量的过程——就像汽车烧汽油获得动力。光合作用制造有机物（存钱），呼吸作用消耗有机物（花钱）。植物白天光合作用大于呼吸，净赚；晚上只有呼吸，在花钱！"}]}]}};
+
+const SUBJECTS = {
+  "数学":{icon:"📐",color:"#667eea",bg:"#eef2ff",chapters:6},
+  "语文":{icon:"📖",color:"#ed8936",bg:"#fff8f1",chapters:6},
+  "英语":{icon:"🔤",color:"#38a169",bg:"#f0fff4",chapters:8},
+  "道德与法治":{icon:"⚖️",color:"#805ad5",bg:"#faf5ff",chapters:11},
+  "历史":{icon:"📜",color:"#c05621",bg:"#fff5f0",chapters:21},
+  "地理":{icon:"🌍",color:"#3182ce",bg:"#ebf8ff",chapters:5},
+  "生物":{icon:"🧬",color:"#38b2ac",bg:"#e6fffa",chapters:5}
+};
+
+// ====== STATE ======
+let state = {
+  screen:"subjects",  // subjects | chapters | quiz | result | summary
+  subject:null,
+  chapterIdx:0,
+  qIdx:0,
+  combo:0,
+  answers:[],
+  explanationShown:false
+};
+
+// ====== PERSISTENCE ======
+function loadProgress() {
+  try { return JSON.parse(localStorage.getItem("quiz_progress_v2") || "{}"); }
+  catch { return {}; }
+}
+function saveProgress(p) { localStorage.setItem("quiz_progress_v2", JSON.stringify(p)); }
+function getSubjProgress(subj) {
+  const p = loadProgress();
+  const chs = p[subj] || {};
+  const chKeys = QUIZ_DATA[subj].chapters.map(c=>c.id);
+  const done = chKeys.filter(k=>chs[k]?.done).length;
+  const total = chKeys.length;
+  return {done, total};
+}
+function getChapterDone(subj,chId) {
+  const p = loadProgress();
+  return !!(p[subj] && p[subj][chId] && p[subj][chId].done);
+}
+function setChapterDone(subj,chId,correct,total) {
+  const p = loadProgress();
+  if (!p[subj]) p[subj] = {};
+  p[subj][chId] = {done:true, correct, total};
+  saveProgress(p);
+}
+function getNextChapter(subj) {
+  const p = loadProgress();
+  const chs = QUIZ_DATA[subj].chapters;
+  for (let i = 0; i < chs.length; i++) {
+    if (!getChapterDone(subj, chs[i].id)) return i;
+  }
+  return chs.length;
+}
+
+// ====== RENDER ======
+function render() {
+  const content = document.getElementById("content");
+  switch(state.screen) {
+    case "subjects": renderSubjects(content); break;
+    case "chapters": renderChapters(content); break;
+    case "quiz": renderQuiz(content); break;
+    case "result": renderResult(content); break;
+    case "summary": renderSummary(content); break;
+  }
+}
+
+function renderSubjects(el) {
+  let html = '<div class="subjects">';
+  for (const [name, info] of Object.entries(SUBJECTS)) {
+    const prog = getSubjProgress(name);
+    const pct = prog.total ? Math.round(prog.done/prog.total*100) : 0;
+    const star = prog.done === prog.total && prog.total > 0 ? '⭐' : '';
+    const played = prog.done > 0 ? ' played' : '';
+    html += `<div class="subj-card${played} fade-in" onclick="selectSubject('${name}')" style="border-top:3px solid ${info.color};background:${info.bg}">
+      <div class="subj-icon">${info.icon}</div>
+      <div class="subj-name">${name}</div>
+      <div class="subj-progress"><div class="subj-progress-bar" style="width:${pct}%"></div></div>
+      <div class="subj-info">${prog.done}/${prog.total} 关 ${pct}%</div>
+      ${star?`<div class="subj-star">${star}</div>`:''}
+    </div>`;
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function renderChapters(el) {
+  const subj = state.subject;
+  const chs = QUIZ_DATA[subj].chapters;
+  const nextIdx = getNextChapter(subj);
+  let html = `<button class="back-btn" onclick="goBack()">← 返回科目</button>`;
+  html += `<h2 style="margin-bottom:4px">${SUBJECTS[subj].icon} ${subj}</h2>`;
+  html += `<p style="color:var(--sub);margin-bottom:16px">${getSubjProgress(subj).done}/${chs.length} 关已通过</p>`;
+  html += '<div class="chapter-list">';
+  for (let i = 0; i < chs.length; i++) {
+    const ch = chs[i];
+    const done = getChapterDone(subj, ch.id);
+    const locked = i > nextIdx || (done && i >= nextIdx && i !== nextIdx);
+    const actualLocked = i > nextIdx;
+    let cls = '', numCls = '', status = '';
+    if (done) { cls = 'done'; numCls = 'done'; status = '<span class="chapter-status done">✓ 已通关</span>'; }
+    else if (actualLocked) { cls = 'locked'; numCls = 'locked'; status = '<span class="lock-icon">🔒</span>'; }
+    else { cls = 'open'; numCls = 'open'; status = '<span class="chapter-status open">▶ 开始闯关</span>'; }
+    html += `<div class="chapter-card ${cls} fade-in" ${!actualLocked?`onclick="startChapter(${i})"`:''}>
+      <div class="chapter-num ${numCls}">${done?'✓':(actualLocked?'🔒':i+1)}</div>
+      <div class="chapter-info"><h3>${ch.title}</h3></div>
+      ${status}
+    </div>`;
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function renderQuiz(el) {
+  const subj = state.subject;
+  const ch = QUIZ_DATA[subj].chapters[state.chapterIdx];
+  const questions = ch.questions;
+  const q = questions[state.qIdx];
+  const isLast = state.qIdx === questions.length - 1;
+  const answered = state.answers[state.qIdx] !== undefined;
+
+  let html = '<div class="quiz-container fade-in">';
+  html += `<div class="quiz-header">
+    <div class="breadcrumb">${SUBJECTS[subj].icon} ${subj} > ${ch.title}</div>
+    ${state.combo>=2?`<div class="combo-badge">🔥 ${state.combo}连击</div>`:''}
+    <div class="progress-top">
+      <div class="bar"><div class="bar-fill" style="width:${Math.round((state.qIdx+1)/questions.length*100)}%"></div></div>
+      <span>${state.qIdx+1}/${questions.length}</span>
+    </div>
+  </div>`;
+
+  html += `<div class="question-card">
+    <h2>${state.qIdx+1}. ${q.q}</h2>
+    <div class="options">`;
+  for (let i = 0; i < q.opts.length; i++) {
+    let cls = 'opt-btn';
+    if (answered) {
+      if (i === q.ans) cls += ' correct';
+      else if (state.answers[state.qIdx] === i && i !== q.ans) cls += ' wrong';
+    }
+    const disabled = answered ? 'disabled' : '';
+    html += `<button class="${cls}" ${disabled} onclick="answer(${i})">${['A','B','C','D'][i]}. ${q.opts[i]}</button>`;
+  }
+  html += '</div>';
+
+  // Feedback for wrong answer
+  if (answered && state.answers[state.qIdx] !== q.ans) {
+    html += `<div class="feedback error show fade-in">
+      <h3>❌ 答错了，别灰心！</h3>
+      <p>${q.explain}</p>
+      ${!state.explanationShown?`<button class="retry-btn" onclick="retryQuestion()">🔄 再试一次</button>`:''}
+      <p style="margin-top:8px;font-size:13px;color:var(--sub)">你已看过解析，继续下一题吧~</p>
+    </div>`;
+  }
+
+  // Feedback for correct
+  if (answered && state.answers[state.qIdx] === q.ans) {
+    const msgs = ['太棒了！🌟','厉害！👏','完全正确！🎯','学霸就是你！💪','满分选手！🏆'];
+    const msg = msgs[Math.floor(Math.random()*msgs.length)];
+    html += `<div class="feedback success show fade-in">
+      <h3>${msg}</h3>
+      <p>${q.explain}</p>
+      ${!isLast?`<button class="retry-btn" style="background:var(--success)" onclick="nextQuestion()">下一题 →</button>`:
+      `<button class="retry-btn" style="background:var(--gold)" onclick="finishChapter()">🎉 查看成绩</button>`}
+    </div>`;
+  }
+
+  html += '</div></div>';
+  el.innerHTML = html;
+}
+
+function renderResult(el) {
+  const subj = state.subject;
+  const ch = QUIZ_DATA[subj].chapters[state.chapterIdx];
+  const total = ch.questions.length;
+  const correct = state.answers.filter((a,i)=>a===ch.questions[i].ans).length;
+  const pct = Math.round(correct/total*100);
+  const passed = pct >= 60;
+  let emoji, title, msg;
+  if (pct === 100) { emoji='🏆'; title='完美通关！'; msg='全部答对，你是这门课的王者！'; }
+  else if (pct >= 80) { emoji='🌟'; title='优秀通关！'; msg='非常扎实，继续加油！'; }
+  else if (pct >= 60) { emoji='👍'; title='通关成功！'; msg='基础不错，再巩固一下会更好！'; }
+  else { emoji='📚'; title='还需努力！'; msg='别灰心，重新挑战一下，你可以的！'; }
+
+  let html = `<div class="result-card fade-in">
+    <div class="big-emoji star-anim">${emoji}</div>
+    <h2>${title}</h2>
+    <p style="color:var(--sub)">${ch.title}</p>
+    <div class="stats">
+      <div class="stat"><div class="num">${correct}</div><div class="label">答对</div></div>
+      <div class="stat"><div class="num">${total-correct}</div><div class="label">答错</div></div>
+      <div class="stat"><div class="num" style="color:${passed?pct>=80?'var(--success)':'var(--gold)':'var(--error)'}">${pct}%</div><div class="label">正确率</div></div>
+      <div class="stat"><div class="num">${state.combo||0}</div><div class="label">最高连击</div></div>
+    </div>
+    <div>${passed?`<button class="next-btn" onclick="goNextChapter()">下一关 →</button>`:`<button class="retry-btn" style="background:var(--gold)" onclick="retryChapter()">🔄 重新挑战</button>`}</div>
+    <div><button class="home-btn" onclick="goHome()">返回科目</button></div>
+  </div>`;
+  el.innerHTML = html;
+}
+
+function renderSummary(el) {
+  const subj = state.subject;
+  const chs = QUIZ_DATA[subj].chapters;
+  let html = `<button class="back-btn" onclick="state.screen='subjects';render()">← 返回首页</button>`;
+  html += `<h2 style="margin-bottom:12px">${SUBJECTS[subj].icon} ${subj} 总结</h2>`;
+  html += '<div class="summary-card"><table class="summary-table"><thead><tr><th>章节</th><th>状态</th><th>正确率</th></tr></thead><tbody>';
+  for (const ch of chs) {
+    const d = getChapterDone(subj, ch.id);
+    const pct = d ? Math.round(d.correct/d.total*100) : 0;
+    html += `<tr>
+      <td style="text-align:left">${ch.title}</td>
+      <td>${d?`<span style="color:var(--success);font-weight:600">✓ 已通关</span>`:`<span style="color:#cbd5e0">未解锁</span>`}</td>
+      <td>${d?`${pct}% (${d.correct}/${d.total})`:'-'}</td>
+    </tr>`;
+  }
+  html += '</tbody></table></div>';
+  el.innerHTML = html;
+}
+
+// ====== ACTIONS ======
+function selectSubject(subj) {
+  state.subject = subj;
+  state.screen = "chapters";
+  render();
+}
+
+function goBack() {
+  if (state.screen === "chapters") { state.screen = "subjects"; }
+  render();
+}
+
+function goHome() {
+  state.screen = "chapters";
+  render();
+}
+
+function startChapter(idx) {
+  state.chapterIdx = idx;
+  state.qIdx = 0;
+  state.combo = 0;
+  state.answers = [];
+  state.explanationShown = false;
+  state.screen = "quiz";
+  render();
+}
+
+function answer(optIdx) {
+  if (state.answers[state.qIdx] !== undefined) return;
+  state.answers[state.qIdx] = optIdx;
+  const ch = QUIZ_DATA[state.subject].chapters[state.chapterIdx];
+  const q = ch.questions[state.qIdx];
+  if (optIdx === q.ans) {
+    state.combo++;
+    state.explanationShown = false;
+    if (optIdx === q.ans && state.qIdx === ch.questions.length - 1) {
+      // Last question & correct - auto save
+      saveChapterResult();
+    }
+  } else {
+    state.combo = 0;
+    state.explanationShown = false;
+  }
+  render();
+}
+
+function retryQuestion() {
+  state.explanationShown = true;
+  state.answers[state.qIdx] = undefined;
+  render();
+}
+
+function nextQuestion() {
+  state.qIdx++;
+  state.explanationShown = false;
+  if (state.qIdx >= QUIZ_DATA[state.subject].chapters[state.chapterIdx].questions.length) {
+    finishChapter();
+    return;
+  }
+  render();
+}
+
+function finishChapter() {
+  saveChapterResult();
+  state.screen = "result";
+  render();
+}
+
+function saveChapterResult() {
+  const subj = state.subject;
+  const ch = QUIZ_DATA[subj].chapters[state.chapterIdx];
+  const total = ch.questions.length;
+  const correct = state.answers.filter((a,i)=>a===ch.questions[i].ans).length;
+  setChapterDone(subj, ch.id, correct, total);
+}
+
+function retryChapter() {
+  state.qIdx = 0;
+  state.answers = [];
+  state.combo = 0;
+  state.explanationShown = false;
+  state.screen = "quiz";
+  render();
+}
+
+function goNextChapter() {
+  const subj = state.subject;
+  const chs = QUIZ_DATA[subj].chapters;
+  const nextIdx = getNextChapter(subj);
+  if (nextIdx < chs.length) {
+    startChapter(nextIdx);
+  } else {
+    state.screen = "chapters";
+    render();
+  }
+}
+
+// Init
+render();
+</script>
+</body>
+</html>
