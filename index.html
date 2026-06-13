@@ -406,7 +406,7 @@ async function fetchMoreQuestions() {
       {role:'system', content:'你是初一' + subj + '科目的出题老师。请生成5道关于"' + ch.title + '"的单选题。每道题包含：题目(q)、4个选项(opts数组)、正确答案索引(ans，0-3)、通俗解释(explain，用小学生能懂的比喻)。返回纯JSON数组，不要markdown代码块。格式：[{"q":"...","opts":["A","B","C","D"],"ans":0,"explain":"..."}]'},
       {role:'user', content:'请出5道关于"' + ch.title + '"的单选题'}
     ];
-    var resp = await fetch('/api/ask', {
+    var resp = await fetch('https://qiyi-study.vercel.app/api/ask', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({messages:msgs})
@@ -600,7 +600,7 @@ async function sendAI() {
       messages.push({role:recent[k].role, content:recent[k].content});
     }
 
-    var resp = await fetch('/api/ask', {
+    var resp = await fetch('https://qiyi-study.vercel.app/api/ask', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({messages:messages})
