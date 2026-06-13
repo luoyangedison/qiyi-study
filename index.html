@@ -252,9 +252,10 @@ function renderChapters(el) {
   el.innerHTML = html;
 }
 
-function renderQuiz(el) {
+async function renderQuiz(el) {
   const subj = state.subject;
   const ch = QUIZ_DATA[subj].chapters[state.chapterIdx];
+  await ensureQuestions();
   const questions = ch.questions;
   const q = questions[state.qIdx];
   const isLast = state.qIdx === questions.length - 1;
@@ -262,6 +263,7 @@ function renderQuiz(el) {
 
   let html = '<div class="quiz-container fade-in">';
   html += `<div class="quiz-header">
+    <button class="back-btn" onclick="goBack()">← 返回章节</button>
     <div class="breadcrumb">${SUBJECTS[subj].icon} ${subj} > ${ch.title}</div>
     ${state.combo>=2?`<div class="combo-badge">🔥 ${state.combo}连击</div>`:''}
     <div class="progress-top">
@@ -301,8 +303,10 @@ function renderQuiz(el) {
     html += `<div class="feedback success show fade-in">
       <h3>${msg}</h3>
       <p>${q.explain}</p>
-      ${!isLast?`<button class="retry-btn" style="background:var(--success)" onclick="nextQuestion()">下一题 →</button>`:
-      `<button class="retry-btn" style="background:var(--gold)" onclick="finishChapter()">🎉 查看成绩</button>`}
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button class="retry-btn" style="background:var(--success);flex:1" onclick="nextQuestion()">下一题 →</button>
+        <button class="retry-btn" style="background:#e2e8f0;color:var(--text);flex:1" onclick="finishChapter()">📊 结束闯关看成绩</button>
+      </div>
     </div>`;
   }
 
@@ -366,7 +370,8 @@ function selectSubject(subj) {
 }
 
 function goBack() {
-  if (state.screen === "chapters") { state.screen = "subjects"; }
+  if (state.screen === "quiz") { state.screen = "chapters"; state.explanationShown = false; }
+  else if (state.screen === "chapters") { state.screen = "subjects"; }
   render();
 }
 
@@ -385,6 +390,52 @@ function startChapter(idx) {
   render();
 }
 
+// ====== DYNAMIC QUESTION CACHE ======
+let dynamicCache = {}; // key: "subj|chIdx" -> array of question objects
+
+async function fetchMoreQuestions() {
+  const subj = state.subject;
+  const ch = QUIZ_DATA[subj].chapters[state.chapterIdx];
+  const cacheKey = subj + '|' + state.chapterIdx;
+
+  try {
+    var msgs = [
+      {role:'system', content:'你是初一' + subj + '科目的出题老师。请生成5道关于"' + ch.title + '"的单选题。每道题包含：题目(q)、4个选项(opts数组)、正确答案索引(ans，0-3)、通俗解释(explain，用小学生能懂的比喻)。返回纯JSON数组，不要markdown代码块。格式：[{"q":"...","opts":["A","B","C","D"],"ans":0,"explain":"..."}]'},
+      {role:'user', content:'请出5道关于"' + ch.title + '"的单选题'}
+    ];
+    var resp = await fetch('/api/ask', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({messages:msgs})
+    });
+    var data = await resp.json();
+    var text = data.choices?.[0]?.message?.content || data.content || '';
+    // Extract JSON array from response
+    var jsonMatch = text.match(/\[[\s\S]*?\]/);
+    if (jsonMatch) {
+      var newQuestions = JSON.parse(jsonMatch[0]);
+      if (!dynamicCache[cacheKey]) dynamicCache[cacheKey] = [];
+      dynamicCache[cacheKey] = dynamicCache[cacheKey].concat(newQuestions);
+      // Also add to QUIZ_DATA
+      QUIZ_DATA[subj].chapters[state.chapterIdx].questions = QUIZ_DATA[subj].chapters[state.chapterIdx].questions.concat(newQuestions);
+    }
+  } catch(e) {
+    console.log('Failed to fetch more questions:', e);
+  }
+}
+
+async function ensureQuestions() {
+  const subj = state.subject;
+  const ch = QUIZ_DATA[subj].chapters[state.chapterIdx];
+  if (state.qIdx >= ch.questions.length) {
+    // Show loading
+    var el = document.getElementById('content');
+    el.innerHTML = '<div style="text-align:center;padding:60px 20px"><div style="font-size:48px;margin-bottom:16px">🤖</div><h3>AI 正在生成新题目…</h3><p style="color:var(--sub);margin-top:8px">请稍等几秒</p></div>';
+    await fetchMoreQuestions();
+    render();
+  }
+}
+
 function answer(optIdx) {
   if (state.answers[state.qIdx] !== undefined) return;
   state.answers[state.qIdx] = optIdx;
@@ -393,10 +444,6 @@ function answer(optIdx) {
   if (optIdx === q.ans) {
     state.combo++;
     state.explanationShown = false;
-    if (optIdx === q.ans && state.qIdx === ch.questions.length - 1) {
-      // Last question & correct - auto save
-      saveChapterResult();
-    }
   } else {
     state.combo = 0;
     state.explanationShown = false;
@@ -410,13 +457,10 @@ function retryQuestion() {
   render();
 }
 
-function nextQuestion() {
+async function nextQuestion() {
   state.qIdx++;
   state.explanationShown = false;
-  if (state.qIdx >= QUIZ_DATA[state.subject].chapters[state.chapterIdx].questions.length) {
-    finishChapter();
-    return;
-  }
+  await ensureQuestions();
   render();
 }
 
@@ -480,6 +524,13 @@ let aiMessages = [];
 function renderAIChat() {
   var el = document.getElementById('aiContent');
   var html = '<div class="ai-container fade-in">';
+
+  // Quick action buttons
+  html += '<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">';
+  html += '<button class="ai-quiz-btn" onclick="aiQuizMe()" style="flex:1;padding:10px 16px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer">🎯 出题考我</button>';
+  html += '<button class="ai-quiz-btn" onclick="aiExplain()" style="flex:1;padding:10px 16px;background:#f1f5f9;color:var(--text);border:1px solid #e2e8f0;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer">💡 给我讲讲知识点</button>';
+  html += '</div>';
+
   html += '<select class="ai-select" id="aiSubj" onchange="aiMessages=[];renderAIChat()"><option value="">全部科目</option>';
   var keys = Object.keys(SUBJECTS);
   for (var i = 0; i < keys.length; i++) {
@@ -555,6 +606,21 @@ async function sendAI() {
     renderAIChat();
   }
   btn.disabled = false;
+}
+
+async function aiQuizMe() {
+  var subj = document.getElementById('aiSubj').value || '数学';
+  var q = '请给我出一道关于' + (document.getElementById('aiSubj').value||'初一知识点') + '的单选题。格式：先出题目标题，然后题目，然后ABCD四个选项，最后告诉我正确答案和解析。直接出题，不用问我。';
+  document.getElementById('aiInput').value = q;
+  sendAI();
+}
+
+async function aiExplain() {
+  var subj = document.getElementById('aiSubj').value;
+  if (!subj) { subj = '数学'; }
+  var q = '请从' + subj + '七年级下册中随机挑一个重要知识点，用通俗易懂的方式给我讲解，最好用生活化的比喻。';
+  document.getElementById('aiInput').value = q;
+  sendAI();
 }
 
 // Init
