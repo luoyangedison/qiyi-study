@@ -98,12 +98,42 @@ body{font-family:"PingFang SC","Microsoft YaHei","Helvetica Neue",sans-serif;bac
 /* Easter Egg */
 .firework{position:fixed;pointer-events:none;z-index:999;animation:flyUp 1s ease-out forwards}
 @keyframes flyUp{0%{transform:translateY(0) scale(1);opacity:1}100%{transform:translateY(-200px) scale(0);opacity:0}}
+
+/* Mode Tabs */
+.mode-tabs{display:flex;gap:0;margin:8px 0 16px;background:#e2e8f0;border-radius:12px;padding:3px}
+.mode-tab{flex:1;text-align:center;padding:10px 20px;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;transition:all .25s;border:none;background:transparent;color:var(--sub)}
+.mode-tab.active{background:#fff;color:var(--primary);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.mode-tab:hover:not(.active){color:var(--text)}
+/* AI Chat */
+.ai-container{max-width:750px;margin:0 auto}
+.ai-select{width:100%;padding:10px 14px;border:2px solid #e2e8f0;border-radius:10px;font-size:14px;margin-bottom:12px;background:#fff;color:var(--text)}
+.ai-chat{background:var(--card);border-radius:16px;padding:16px;box-shadow:var(--shadow);min-height:300px;max-height:55vh;overflow-y:auto;margin-bottom:12px;display:flex;flex-direction:column;gap:12px}
+.ai-msg{max-width:85%;padding:12px 16px;border-radius:14px;font-size:14px;line-height:1.7;word-break:break-word}
+.ai-msg.user{align-self:flex-end;background:var(--primary);color:#fff;border-bottom-right-radius:4px}
+.ai-msg.bot{align-self:flex-start;background:#f1f5f9;color:var(--text);border-bottom-left-radius:4px}
+.ai-msg .label{font-size:11px;margin-bottom:4px;opacity:.7}
+.ai-input-wrap{display:flex;gap:8px}
+.ai-input{flex:1;padding:12px 16px;border:2px solid #e2e8f0;border-radius:12px;font-size:15px;outline:none;transition:border .2s}
+.ai-input:focus{border-color:var(--primary)}
+.ai-send{padding:12px 24px;background:var(--primary);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;white-space:nowrap}
+.ai-send:hover{background:#4c5aa8}
+.ai-send:disabled{opacity:.5;cursor:not-allowed}
+.ai-typing{align-self:flex-start;padding:12px 16px;background:#f1f5f9;border-radius:14px;font-size:14px;color:var(--sub)}
+.ai-typing span{animation:dotPulse 1.4s infinite;display:inline-block}
+.ai-typing span:nth-child(2){animation-delay:.2s}
+.ai-typing span:nth-child(3){animation-delay:.4s}
+@keyframes dotPulse{0%,80%,100%{opacity:.2}40%{opacity:1}}
 </style>
 </head>
 <body>
 <div class="container" id="app">
   <div class="header"><h1>初一全科学习闯关</h1><p>七年级下册 | 语数外 + 小四门 | 洛阳市涧西区教材</p></div>
+  <div class="mode-tabs" id="modeTabs">
+    <button class="mode-tab active" onclick="switchMode('quiz')">闯关模式</button>
+    <button class="mode-tab" onclick="switchMode('ai')">AI 问答</button>
+  </div>
   <div id="content"></div>
+  <div id="aiContent" style="display:none"></div>
 </div>
 
 <script>
@@ -133,10 +163,10 @@ let state = {
 
 // ====== PERSISTENCE ======
 function loadProgress() {
-  try { return JSON.parse(localStorage.getItem("quiz_progress_v2') || '{}'); }
+  try { return JSON.parse(localStorage.getItem("quiz_progress_v2") || "{}"); }
   catch { return {}; }
 }
-function saveProgress(p) { localStorage.setItem('quiz_progress_v2", JSON.stringify(p)); }
+function saveProgress(p) { localStorage.setItem("quiz_progress_v2", JSON.stringify(p)); }
 function getSubjProgress(subj) {
   const p = loadProgress();
   const chs = p[subj] || {};
@@ -166,9 +196,9 @@ function getNextChapter(subj) {
 
 // ====== RENDER ======
 function render() {
-  const content = document.getElementById("content');
+  const content = document.getElementById("content");
   switch(state.screen) {
-    case 'subjects": renderSubjects(content); break;
+    case "subjects": renderSubjects(content); break;
     case "chapters": renderChapters(content); break;
     case "quiz": renderQuiz(content); break;
     case "result": renderResult(content); break;
@@ -177,18 +207,18 @@ function render() {
 }
 
 function renderSubjects(el) {
-  let html = '<div class="subjects'>';
+  let html = '<div class="subjects">';
   for (const [name, info] of Object.entries(SUBJECTS)) {
     const prog = getSubjProgress(name);
     const pct = prog.total ? Math.round(prog.done/prog.total*100) : 0;
     const star = prog.done === prog.total && prog.total > 0 ? '⭐' : '';
     const played = prog.done > 0 ? ' played' : '';
-    html += `<div class='subj-card${played} fade-in' onclick='selectSubject('${name}')' style='border-top:3px solid ${info.color};background:${info.bg}'>
-      <div class='subj-icon'>${info.icon}</div>
-      <div class='subj-name'>${name}</div>
-      <div class='subj-progress'><div class='subj-progress-bar' style='width:${pct}%'></div></div>
-      <div class='subj-info'>${prog.done}/${prog.total} 关 ${pct}%</div>
-      ${star?`<div class='subj-star'>${star}</div>`:''}
+    html += `<div class="subj-card${played} fade-in" onclick="selectSubject('${name}')" style="border-top:3px solid ${info.color};background:${info.bg}">
+      <div class="subj-icon">${info.icon}</div>
+      <div class="subj-name">${name}</div>
+      <div class="subj-progress"><div class="subj-progress-bar" style="width:${pct}%"></div></div>
+      <div class="subj-info">${prog.done}/${prog.total} 关 ${pct}%</div>
+      ${star?`<div class="subj-star">${star}</div>`:''}
     </div>`;
   }
   html += '</div>';
@@ -199,22 +229,22 @@ function renderChapters(el) {
   const subj = state.subject;
   const chs = QUIZ_DATA[subj].chapters;
   const nextIdx = getNextChapter(subj);
-  let html = `<button class='back-btn' onclick='goBack()'>← 返回科目</button>`;
-  html += `<h2 style='margin-bottom:4px'>${SUBJECTS[subj].icon} ${subj}</h2>`;
-  html += `<p style='color:var(--sub);margin-bottom:16px'>${getSubjProgress(subj).done}/${chs.length} 关已通过</p>`;
-  html += '<div class='chapter-list'>';
+  let html = `<button class="back-btn" onclick="goBack()">← 返回科目</button>`;
+  html += `<h2 style="margin-bottom:4px">${SUBJECTS[subj].icon} ${subj}</h2>`;
+  html += `<p style="color:var(--sub);margin-bottom:16px">${getSubjProgress(subj).done}/${chs.length} 关已通过</p>`;
+  html += '<div class="chapter-list">';
   for (let i = 0; i < chs.length; i++) {
     const ch = chs[i];
     const done = getChapterDone(subj, ch.id);
     const locked = i > nextIdx || (done && i >= nextIdx && i !== nextIdx);
     const actualLocked = i > nextIdx;
     let cls = '', numCls = '', status = '';
-    if (done) { cls = 'done'; numCls = 'done'; status = '<span class='chapter-status done'>✓ 已通关</span>'; }
-    else if (actualLocked) { cls = 'locked'; numCls = 'locked'; status = '<span class='lock-icon'>🔒</span>'; }
-    else { cls = 'open'; numCls = 'open'; status = '<span class='chapter-status open'>▶ 开始闯关</span>'; }
-    html += `<div class='chapter-card ${cls} fade-in' ${!actualLocked?`onclick='startChapter(${i})'`:''}>
-      <div class='chapter-num ${numCls}'>${done?'✓':(actualLocked?'🔒':i+1)}</div>
-      <div class='chapter-info'><h3>${ch.title}</h3></div>
+    if (done) { cls = 'done'; numCls = 'done'; status = '<span class="chapter-status done">✓ 已通关</span>'; }
+    else if (actualLocked) { cls = 'locked'; numCls = 'locked'; status = '<span class="lock-icon">🔒</span>'; }
+    else { cls = 'open'; numCls = 'open'; status = '<span class="chapter-status open">▶ 开始闯关</span>'; }
+    html += `<div class="chapter-card ${cls} fade-in" ${!actualLocked?`onclick="startChapter(${i})"`:''}>
+      <div class="chapter-num ${numCls}">${done?'✓':(actualLocked?'🔒':i+1)}</div>
+      <div class="chapter-info"><h3>${ch.title}</h3></div>
       ${status}
     </div>`;
   }
@@ -230,19 +260,19 @@ function renderQuiz(el) {
   const isLast = state.qIdx === questions.length - 1;
   const answered = state.answers[state.qIdx] !== undefined;
 
-  let html = '<div class='quiz-container fade-in'>';
-  html += `<div class='quiz-header'>
-    <div class='breadcrumb'>${SUBJECTS[subj].icon} ${subj} > ${ch.title}</div>
-    ${state.combo>=2?`<div class='combo-badge'>🔥 ${state.combo}连击</div>`:''}
-    <div class='progress-top'>
-      <div class='bar'><div class='bar-fill' style='width:${Math.round((state.qIdx+1)/questions.length*100)}%'></div></div>
+  let html = '<div class="quiz-container fade-in">';
+  html += `<div class="quiz-header">
+    <div class="breadcrumb">${SUBJECTS[subj].icon} ${subj} > ${ch.title}</div>
+    ${state.combo>=2?`<div class="combo-badge">🔥 ${state.combo}连击</div>`:''}
+    <div class="progress-top">
+      <div class="bar"><div class="bar-fill" style="width:${Math.round((state.qIdx+1)/questions.length*100)}%"></div></div>
       <span>${state.qIdx+1}/${questions.length}</span>
     </div>
   </div>`;
 
-  html += `<div class='question-card'>
+  html += `<div class="question-card">
     <h2>${state.qIdx+1}. ${q.q}</h2>
-    <div class='options'>`;
+    <div class="options">`;
   for (let i = 0; i < q.opts.length; i++) {
     let cls = 'opt-btn';
     if (answered) {
@@ -250,17 +280,17 @@ function renderQuiz(el) {
       else if (state.answers[state.qIdx] === i && i !== q.ans) cls += ' wrong';
     }
     const disabled = answered ? 'disabled' : '';
-    html += `<button class='${cls}' ${disabled} onclick='answer(${i})'>${['A','B','C','D'][i]}. ${q.opts[i]}</button>`;
+    html += `<button class="${cls}" ${disabled} onclick="answer(${i})">${['A','B','C','D'][i]}. ${q.opts[i]}</button>`;
   }
   html += '</div>';
 
   // Feedback for wrong answer
   if (answered && state.answers[state.qIdx] !== q.ans) {
-    html += `<div class='feedback error show fade-in'>
+    html += `<div class="feedback error show fade-in">
       <h3>❌ 答错了，别灰心！</h3>
       <p>${q.explain}</p>
-      ${!state.explanationShown?`<button class='retry-btn' onclick='retryQuestion()'>🔄 再试一次</button>`:''}
-      <p style='margin-top:8px;font-size:13px;color:var(--sub)'>你已看过解析，继续下一题吧~</p>
+      ${!state.explanationShown?`<button class="retry-btn" onclick="retryQuestion()">🔄 再试一次</button>`:''}
+      <p style="margin-top:8px;font-size:13px;color:var(--sub)">你已看过解析，继续下一题吧~</p>
     </div>`;
   }
 
@@ -268,11 +298,11 @@ function renderQuiz(el) {
   if (answered && state.answers[state.qIdx] === q.ans) {
     const msgs = ['太棒了！🌟','厉害！👏','完全正确！🎯','学霸就是你！💪','满分选手！🏆'];
     const msg = msgs[Math.floor(Math.random()*msgs.length)];
-    html += `<div class='feedback success show fade-in'>
+    html += `<div class="feedback success show fade-in">
       <h3>${msg}</h3>
       <p>${q.explain}</p>
-      ${!isLast?`<button class='retry-btn' style='background:var(--success)' onclick='nextQuestion()'>下一题 →</button>`:
-      `<button class='retry-btn' style='background:var(--gold)' onclick='finishChapter()'>🎉 查看成绩</button>`}
+      ${!isLast?`<button class="retry-btn" style="background:var(--success)" onclick="nextQuestion()">下一题 →</button>`:
+      `<button class="retry-btn" style="background:var(--gold)" onclick="finishChapter()">🎉 查看成绩</button>`}
     </div>`;
   }
 
@@ -293,18 +323,18 @@ function renderResult(el) {
   else if (pct >= 60) { emoji='👍'; title='通关成功！'; msg='基础不错，再巩固一下会更好！'; }
   else { emoji='📚'; title='还需努力！'; msg='别灰心，重新挑战一下，你可以的！'; }
 
-  let html = `<div class='result-card fade-in'>
-    <div class='big-emoji star-anim'>${emoji}</div>
+  let html = `<div class="result-card fade-in">
+    <div class="big-emoji star-anim">${emoji}</div>
     <h2>${title}</h2>
-    <p style='color:var(--sub)'>${ch.title}</p>
-    <div class='stats'>
-      <div class='stat'><div class='num'>${correct}</div><div class='label'>答对</div></div>
-      <div class='stat'><div class='num'>${total-correct}</div><div class='label'>答错</div></div>
-      <div class='stat'><div class='num' style='color:${passed?pct>=80?'var(--success)':'var(--gold)':'var(--error)'}'>${pct}%</div><div class='label'>正确率</div></div>
-      <div class='stat'><div class='num'>${state.combo||0}</div><div class='label'>最高连击</div></div>
+    <p style="color:var(--sub)">${ch.title}</p>
+    <div class="stats">
+      <div class="stat"><div class="num">${correct}</div><div class="label">答对</div></div>
+      <div class="stat"><div class="num">${total-correct}</div><div class="label">答错</div></div>
+      <div class="stat"><div class="num" style="color:${passed?pct>=80?'var(--success)':'var(--gold)':'var(--error)'}">${pct}%</div><div class="label">正确率</div></div>
+      <div class="stat"><div class="num">${state.combo||0}</div><div class="label">最高连击</div></div>
     </div>
-    <div>${passed?`<button class='next-btn' onclick='goNextChapter()'>下一关 →</button>`:`<button class='retry-btn' style='background:var(--gold)' onclick='retryChapter()'>🔄 重新挑战</button>`}</div>
-    <div><button class='home-btn' onclick='goHome()'>返回科目</button></div>
+    <div>${passed?`<button class="next-btn" onclick="goNextChapter()">下一关 →</button>`:`<button class="retry-btn" style="background:var(--gold)" onclick="retryChapter()">🔄 重新挑战</button>`}</div>
+    <div><button class="home-btn" onclick="goHome()">返回科目</button></div>
   </div>`;
   el.innerHTML = html;
 }
@@ -312,15 +342,15 @@ function renderResult(el) {
 function renderSummary(el) {
   const subj = state.subject;
   const chs = QUIZ_DATA[subj].chapters;
-  let html = `<button class='back-btn' onclick='state.screen='subjects';render()'>← 返回首页</button>`;
-  html += `<h2 style='margin-bottom:12px'>${SUBJECTS[subj].icon} ${subj} 总结</h2>`;
-  html += '<div class='summary-card'><table class='summary-table'><thead><tr><th>章节</th><th>状态</th><th>正确率</th></tr></thead><tbody>';
+  let html = `<button class="back-btn" onclick="state.screen='subjects';render()">← 返回首页</button>`;
+  html += `<h2 style="margin-bottom:12px">${SUBJECTS[subj].icon} ${subj} 总结</h2>`;
+  html += '<div class="summary-card"><table class="summary-table"><thead><tr><th>章节</th><th>状态</th><th>正确率</th></tr></thead><tbody>';
   for (const ch of chs) {
     const d = getChapterDone(subj, ch.id);
     const pct = d ? Math.round(d.correct/d.total*100) : 0;
     html += `<tr>
-      <td style='text-align:left'>${ch.title}</td>
-      <td>${d?`<span style='color:var(--success);font-weight:600'>✓ 已通关</span>`:`<span style='color:#cbd5e0'>未解锁</span>`}</td>
+      <td style="text-align:left">${ch.title}</td>
+      <td>${d?`<span style="color:var(--success);font-weight:600">✓ 已通关</span>`:`<span style="color:#cbd5e0">未解锁</span>`}</td>
       <td>${d?`${pct}% (${d.correct}/${d.total})`:'-'}</td>
     </tr>`;
   }
@@ -331,17 +361,17 @@ function renderSummary(el) {
 // ====== ACTIONS ======
 function selectSubject(subj) {
   state.subject = subj;
-  state.screen = 'chapters';
+  state.screen = "chapters";
   render();
 }
 
 function goBack() {
-  if (state.screen === 'chapters') { state.screen = 'subjects'; }
+  if (state.screen === "chapters") { state.screen = "subjects"; }
   render();
 }
 
 function goHome() {
-  state.screen = 'chapters';
+  state.screen = "chapters";
   render();
 }
 
@@ -351,7 +381,7 @@ function startChapter(idx) {
   state.combo = 0;
   state.answers = [];
   state.explanationShown = false;
-  state.screen = 'quiz';
+  state.screen = "quiz";
   render();
 }
 
@@ -392,7 +422,7 @@ function nextQuestion() {
 
 function finishChapter() {
   saveChapterResult();
-  state.screen = 'result';
+  state.screen = "result";
   render();
 }
 
@@ -409,7 +439,7 @@ function retryChapter() {
   state.answers = [];
   state.combo = 0;
   state.explanationShown = false;
-  state.screen = 'quiz';
+  state.screen = "quiz";
   render();
 }
 
@@ -420,9 +450,111 @@ function goNextChapter() {
   if (nextIdx < chs.length) {
     startChapter(nextIdx);
   } else {
-    state.screen = 'chapters';
+    state.screen = "chapters";
     render();
   }
+}
+
+// ====== MODE SWITCHING ======
+let currentMode = 'quiz';
+
+function switchMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-tab').forEach(function(btn,i){
+    btn.classList.toggle('active', (i===0&&mode==='quiz')||(i===1&&mode==='ai'));
+  });
+  if (mode === 'quiz') {
+    document.getElementById('content').style.display = '';
+    document.getElementById('aiContent').style.display = 'none';
+    render();
+  } else {
+    document.getElementById('content').style.display = 'none';
+    document.getElementById('aiContent').style.display = '';
+    renderAIChat();
+  }
+}
+
+// ====== AI CHAT ======
+let aiMessages = [];
+
+function renderAIChat() {
+  var el = document.getElementById('aiContent');
+  var html = '<div class="ai-container fade-in">';
+  html += '<select class="ai-select" id="aiSubj" onchange="aiMessages=[];renderAIChat()"><option value="">全部科目</option>';
+  var keys = Object.keys(SUBJECTS);
+  for (var i = 0; i < keys.length; i++) {
+    var name = keys[i];
+    html += '<option value="' + name + '">' + SUBJECTS[name].icon + ' ' + name + '</option>';
+  }
+  html += '</select>';
+  html += '<div class="ai-chat" id="aiChatBox">';
+  if (aiMessages.length === 0) {
+    html += '<div class="ai-msg bot"><div class="label">AI 助手</div>你好！我是学习助手，可以帮你解答初一各科的疑问。选择科目后直接提问吧！</div>';
+  }
+  for (var j = 0; j < aiMessages.length; j++) {
+    var m = aiMessages[j];
+    var cls = m.role === 'user' ? 'user' : 'bot';
+    var label = m.role === 'user' ? '你' : 'AI 助手';
+    html += '<div class="ai-msg ' + cls + '"><div class="label">' + label + '</div>' + m.content.replace(/\n/g,'<br>') + '</div>';
+  }
+  html += '</div>';
+  html += '<div class="ai-input-wrap"><input class="ai-input" id="aiInput" placeholder="输入你的问题..." onkeydown="if(event.key===\'Enter\')sendAI()"><button class="ai-send" id="aiSendBtn" onclick="sendAI()">发送</button></div>';
+  html += '</div>';
+  el.innerHTML = html;
+  setTimeout(function(){
+    var box = document.getElementById('aiChatBox');
+    if (box) box.scrollTop = box.scrollHeight;
+    var inp = document.getElementById('aiInput');
+    if (inp) inp.focus();
+  }, 100);
+}
+
+async function sendAI() {
+  var input = document.getElementById('aiInput');
+  var btn = document.getElementById('aiSendBtn');
+  var subj = document.getElementById('aiSubj').value;
+  var q = input.value.trim();
+  if (!q) return;
+
+  input.value = '';
+  btn.disabled = true;
+  aiMessages.push({role:'user', content:q});
+  renderAIChat();
+
+  var box = document.getElementById('aiChatBox');
+  var typing = document.createElement('div');
+  typing.className = 'ai-typing';
+  typing.id = 'aiTyping';
+  typing.innerHTML = 'AI 思考中<span>.</span><span>.</span><span>.</span>';
+  box.appendChild(typing);
+  box.scrollTop = box.scrollHeight;
+
+  try {
+    var messages = [{role:'system', content: subj ? '你是初一' + subj + '科目的辅导老师，用通俗易懂的语言和生动比喻解释概念。回答要简明扼要。' : '你是初一全科辅导老师，用通俗易懂的语言和生动比喻解释概念。回答要简明扼要。'}];
+    var recent = aiMessages.slice(-6);
+    for (var k = 0; k < recent.length; k++) {
+      messages.push({role:recent[k].role, content:recent[k].content});
+    }
+
+    var resp = await fetch('/api/ask', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({messages:messages})
+    });
+    var data = await resp.json();
+    var reply = data.choices?.[0]?.message?.content || data.content || '抱歉，AI 暂时无法回复，请稍后再试。';
+    
+    var t = document.getElementById('aiTyping');
+    if (t) t.remove();
+    aiMessages.push({role:'assistant', content:reply});
+    renderAIChat();
+  } catch(e) {
+    var t2 = document.getElementById('aiTyping');
+    if (t2) t2.remove();
+    aiMessages.push({role:'assistant', content:'网络连接失败，请检查网络后重试。'});
+    renderAIChat();
+  }
+  btn.disabled = false;
 }
 
 // Init
