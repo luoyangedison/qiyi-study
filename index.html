@@ -406,10 +406,10 @@ async function fetchMoreQuestions() {
       {role:'system', content:'你是初一' + subj + '科目的出题老师。请生成5道关于"' + ch.title + '"的单选题。每道题包含：题目(q)、4个选项(opts数组)、正确答案索引(ans，0-3)、通俗解释(explain，用小学生能懂的比喻)。返回纯JSON数组，不要markdown代码块。格式：[{"q":"...","opts":["A","B","C","D"],"ans":0,"explain":"..."}]'},
       {role:'user', content:'请出5道关于"' + ch.title + '"的单选题'}
     ];
-    var resp = await fetch('https://api.siliconflow.cn/v1/chat/completions', {
+    var resp = await fetch('https://qiyi-ai-proxy.15538579311.workers.dev', {
       method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer sk-ofdrlmymlgdkoztlgenvqxvilpwhruwvhyraketdmpzzkmue'},
-      body:JSON.stringify({model:'deepseek-ai/DeepSeek-V3',messages:msgs,temperature:0.7,max_tokens:800})
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({messages:msgs})
     });
     var data = await resp.json();
     var text = data.choices?.[0]?.message?.content || data.content || '';
@@ -600,10 +600,10 @@ async function sendAI() {
       messages.push({role:recent[k].role, content:recent[k].content});
     }
 
-    var resp = await fetch('https://api.siliconflow.cn/v1/chat/completions', {
+    var resp = await fetch('https://qiyi-ai-proxy.15538579311.workers.dev', {
       method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer sk-ofdrlmymlgdkoztlgenvqxvilpwhruwvhyraketdmpzzkmue'},
-      body:JSON.stringify({model:'deepseek-ai/DeepSeek-V3',messages:messages,temperature:0.7,max_tokens:800})
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({messages:messages})
     });
     var data = await resp.json();
     var reply = data.choices?.[0]?.message?.content || data.content || '抱歉，AI 暂时无法回复，请稍后再试。';
