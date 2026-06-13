@@ -118,6 +118,8 @@ body{font-family:"PingFang SC","Microsoft YaHei","Helvetica Neue",sans-serif;bac
 .ai-send{padding:12px 24px;background:var(--primary);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;white-space:nowrap}
 .ai-send:hover{background:#4c5aa8}
 .ai-send:disabled{opacity:.5;cursor:not-allowed}
+.ai-quick-btn{padding:14px 20px!important;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,.1)}
+.ai-quick-btn:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,0,0,.15)}
 .ai-typing{align-self:flex-start;padding:12px 16px;background:#f1f5f9;border-radius:14px;font-size:14px;color:var(--sub)}
 .ai-typing span{animation:dotPulse 1.4s infinite;display:inline-block}
 .ai-typing span:nth-child(2){animation-delay:.2s}
@@ -158,7 +160,8 @@ let state = {
   qIdx:0,
   combo:0,
   answers:[],
-  explanationShown:false
+  explanationShown:false,
+  ensureRetryCount:0
 };
 
 // ====== PERSISTENCE ======
@@ -228,7 +231,6 @@ function renderSubjects(el) {
 function renderChapters(el) {
   const subj = state.subject;
   const chs = QUIZ_DATA[subj].chapters;
-  const nextIdx = getNextChapter(subj);
   let html = `<button class="back-btn" onclick="goBack()">← 返回科目</button>`;
   html += `<h2 style="margin-bottom:4px">${SUBJECTS[subj].icon} ${subj}</h2>`;
   html += `<p style="color:var(--sub);margin-bottom:16px">${getSubjProgress(subj).done}/${chs.length} 关已通过</p>`;
@@ -236,14 +238,11 @@ function renderChapters(el) {
   for (let i = 0; i < chs.length; i++) {
     const ch = chs[i];
     const done = getChapterDone(subj, ch.id);
-    const locked = i > nextIdx || (done && i >= nextIdx && i !== nextIdx);
-    const actualLocked = i > nextIdx;
     let cls = '', numCls = '', status = '';
     if (done) { cls = 'done'; numCls = 'done'; status = '<span class="chapter-status done">✓ 已通关</span>'; }
-    else if (actualLocked) { cls = 'locked'; numCls = 'locked'; status = '<span class="lock-icon">🔒</span>'; }
     else { cls = 'open'; numCls = 'open'; status = '<span class="chapter-status open">▶ 开始闯关</span>'; }
-    html += `<div class="chapter-card ${cls} fade-in" ${!actualLocked?`onclick="startChapter(${i})"`:''}>
-      <div class="chapter-num ${numCls}">${done?'✓':(actualLocked?'🔒':i+1)}</div>
+    html += `<div class="chapter-card ${cls} fade-in" onclick="startChapter(${i})">
+      <div class="chapter-num ${numCls}">${done?'✓':i+1}</div>
       <div class="chapter-info"><h3>${ch.title}</h3></div>
       ${status}
     </div>`;
@@ -302,12 +301,15 @@ async function renderQuiz(el) {
     const msg = msgs[Math.floor(Math.random()*msgs.length)];
     html += `<div class="feedback success show fade-in">
       <h3>${msg}</h3>
-      <p>${q.explain}</p>
-      <div style="display:flex;gap:8px;margin-top:12px">
+      <p>${q.explain}</p>`;
+    if (!isLast) {
+      html += `<div style="display:flex;gap:8px;margin-top:12px">
         <button class="retry-btn" style="background:var(--success);flex:1" onclick="nextQuestion()">下一题 →</button>
-        <button class="retry-btn" style="background:#e2e8f0;color:var(--text);flex:1" onclick="finishChapter()">📊 结束闯关看成绩</button>
-      </div>
-    </div>`;
+      </div>`;
+    } else {
+      html += `<p style="margin-top:12px;font-size:14px;color:var(--sub);font-style:italic">🤖 AI 正在生成更多题目…</p>`;
+    }
+    html += `</div>`;
   }
 
   html += '</div></div>';
@@ -386,6 +388,7 @@ function startChapter(idx) {
   state.combo = 0;
   state.answers = [];
   state.explanationShown = false;
+  state.ensureRetryCount = 0;
   state.screen = "quiz";
   render();
 }
@@ -428,7 +431,11 @@ async function ensureQuestions() {
   const subj = state.subject;
   const ch = QUIZ_DATA[subj].chapters[state.chapterIdx];
   if (state.qIdx >= ch.questions.length) {
-    // Show loading
+    if (state.ensureRetryCount >= 2) {
+      finishChapter();
+      return;
+    }
+    state.ensureRetryCount++;
     var el = document.getElementById('content');
     el.innerHTML = '<div style="text-align:center;padding:60px 20px"><div style="font-size:48px;margin-bottom:16px">🤖</div><h3>AI 正在生成新题目…</h3><p style="color:var(--sub);margin-top:8px">请稍等几秒</p></div>';
     await fetchMoreQuestions();
@@ -436,11 +443,12 @@ async function ensureQuestions() {
   }
 }
 
-function answer(optIdx) {
+async function answer(optIdx) {
   if (state.answers[state.qIdx] !== undefined) return;
   state.answers[state.qIdx] = optIdx;
   const ch = QUIZ_DATA[state.subject].chapters[state.chapterIdx];
   const q = ch.questions[state.qIdx];
+  const isLast = state.qIdx === ch.questions.length - 1;
   if (optIdx === q.ans) {
     state.combo++;
     state.explanationShown = false;
@@ -448,7 +456,12 @@ function answer(optIdx) {
     state.combo = 0;
     state.explanationShown = false;
   }
-  render();
+  if (optIdx === q.ans && isLast) {
+    render();
+    await nextQuestion();
+  } else {
+    render();
+  }
 }
 
 function retryQuestion() {
@@ -527,8 +540,8 @@ function renderAIChat() {
 
   // Quick action buttons
   html += '<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">';
-  html += '<button class="ai-quiz-btn" onclick="aiQuizMe()" style="flex:1;padding:10px 16px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer">🎯 出题考我</button>';
-  html += '<button class="ai-quiz-btn" onclick="aiExplain()" style="flex:1;padding:10px 16px;background:#f1f5f9;color:var(--text);border:1px solid #e2e8f0;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer">💡 给我讲讲知识点</button>';
+  html += '<button class="ai-quick-btn" onclick="aiQuizMe()" style="flex:1;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff">🎯 出题考我</button>';
+  html += '<button class="ai-quick-btn" onclick="aiExplain()" style="flex:1;background:#fff;color:var(--primary);border:2px solid var(--primary)">💡 给我讲讲知识点</button>';
   html += '</div>';
 
   html += '<select class="ai-select" id="aiSubj" onchange="aiMessages=[];renderAIChat()"><option value="">全部科目</option>';
